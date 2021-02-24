@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Ref:
 - https://pythonprogramming.org/screen-recording-using-python/
@@ -7,6 +8,8 @@ Ref:
 import cv2 # OpenCV
 import pyautogui
 import numpy as np
+
+from pathlib import Path
 
 # Get full screen resolution.
 screen_w, screen_h = pyautogui.size()
@@ -22,6 +25,11 @@ def select_region(event, x, y, flags, param):
     #   coordinates and indicate that cropping is being performed.
     if event == cv2.EVENT_LBUTTONDOWN:
         corners = [(x, y)]
+
+        # Draw a rectangle around the region of interest.
+        #cv2.rectangle(image, corners[0], pyautogui.position(), (0, 255, 0), 8)
+        #cv2.imshow("image", image)
+
     elif event == cv2.EVENT_LBUTTONUP:
         # Record the ending (x, y) coordinates.
         corners.append((x, y))
@@ -50,8 +58,9 @@ image = pyautogui.screenshot()
 image = np.array(image) # converting the image into numpy array representation
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # converting the BGR image into RGB image
 clone = image.copy()
-cv2.namedWindow("image", cv2.WINDOW_NORMAL)
-cv2.resizeWindow("image", 400, 225)
+#cv2.namedWindow("image", cv2.WINDOW_NORMAL)
+#cv2.resizeWindow("image", 400, 225)
+cv2.namedWindow("image")
 cv2.setMouseCallback("image", select_region)
 
 # Choose mp4 codec for outfile.
@@ -71,7 +80,7 @@ while True:
     if key == ord("q"):
         break
 
-    # Select desktop if "a" or "d" is pressed.
+    # Select entire desktop if "a" or "d" is pressed.
     if key == ord("a") or key == ord("d"):
         corners = [(0,0),(screen_w, screen_h)]
 
@@ -83,18 +92,27 @@ if len(corners) == 2:
     f_left, f_top, width, height = translate_corners(corners)
 
     # Resolution set by 'width' and 'height'.
-    out = cv2.VideoWriter("Recorded.mp4", codec , 20, (int(width), int(height)))
+    outdir = Path.home()
+    outfile_name = "Recorded.mp4"
+    outfile = outdir / outfile_name
+    out = cv2.VideoWriter(str(outfile), codec , 20, (int(width), int(height)))
 
     while True:
         img = pyautogui.screenshot(region=(f_left, f_top, width, height))
-        frame = np.array(img) #converting the image into numpy array representation
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #converting the BGR image into RGB image
-        out.write(frame) #writing the RBG image to file
-        cv2.imshow('Recording', frame) #display screen/frame being recorded
-        if cv2.waitKey(1) == ord('q'): #Wait for the user to press 'q' key to stop the recording
+        # Convert the image into numpy array representation.
+        frame = np.array(img)
+        # Convert the BGR image into RGB image.
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Write the RBG image to the outfile.
+        out.write(frame)
+        # Display screen/frame being recorded.
+        cv2.imshow('Recording', frame)
+        # Enable the user to press 'q' key to stop the recording.
+        if cv2.waitKey(1) == ord('q'):
             break
 
     cv2.waitKey(0)
     out.release()
 
-cv2.destroyAllWindows() #destroying the recording window
+# Destroy the recording window.
+cv2.destroyAllWindows()
